@@ -10,7 +10,20 @@ const errorMessage = document.querySelector("#error-message");
 // Array to store note objects
 let notes = [];
 
-// Update the note count paragraph with correct grammar
+// Load stored notes from localStorage
+function loadNotes() {
+  const saved = localStorage.getItem("quicknotes_data");
+  if (saved) {
+    notes = JSON.parse(saved);
+  }
+}
+
+// Save notes to localStorage
+function saveNotes() {
+  localStorage.setItem("quicknotes_data", JSON.stringify(notes));
+}
+
+// Update the note count paragraph
 function updateNoteCount(count) {
   if (count === 0) {
     noteCount.textContent = "You have no notes yet.";
@@ -21,12 +34,25 @@ function updateNoteCount(count) {
   }
 }
 
-// Render function rebuilding the list using createElement and textContent
+// Render function with filtering and search match check
 function render() {
   notesList.textContent = "";
-  updateNoteCount(notes.length);
 
-  notes.forEach((note) => {
+  const query = searchInput.value.toLowerCase().trim();
+  const filteredNotes = notes.filter((note) =>
+    note.text.toLowerCase().includes(query),
+  );
+
+  updateNoteCount(filteredNotes.length);
+
+  if (filteredNotes.length === 0 && query !== "") {
+    const noResults = document.createElement("li");
+    noResults.textContent = "No notes match your search.";
+    notesList.appendChild(noResults);
+    return;
+  }
+
+  filteredNotes.forEach((note) => {
     const li = document.createElement("li");
     li.classList.add("note-card", `category-${note.category.toLowerCase()}`);
 
@@ -60,7 +86,6 @@ function addNote(e) {
   e.preventDefault();
   const text = noteInput.value.trim();
 
-  // Validation checks
   if (text === "") {
     errorMessage.textContent = "Please type a note first.";
     return;
@@ -81,15 +106,23 @@ function addNote(e) {
   };
 
   notes.push(newNote);
+  saveNotes();
   render();
+
   noteInput.value = "";
 }
 
 // Function to delete a note by ID
 function deleteNote(id) {
   notes = notes.filter((note) => note.id !== id);
+  saveNotes();
   render();
 }
 
 // Event Listeners
 noteForm.addEventListener("submit", addNote);
+searchInput.addEventListener("input", render);
+
+// Initial load
+loadNotes();
+render();
